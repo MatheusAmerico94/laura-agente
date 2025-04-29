@@ -9,7 +9,10 @@ app = Flask(__name__)
 VERIFY_TOKEN = "laura123"
 ACCESS_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
-openai.api_key = os.environ.get("OPENAI_API_KEY")
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+
+# Instanciando cliente da OpenAI (novo padrão)
+client = openai.OpenAI(api_key=openai_api_key)
 
 @app.route("/", methods=["GET"])
 def home():
@@ -40,18 +43,18 @@ def webhook():
 
 def ask_gpt(prompt):
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",  # Agora usando GPT-4-turbo
+        response = client.chat.completions.create(
+            model="gpt-4-turbo",
             messages=[
-                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática e muito inteligente!"},
+                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, sensível, que sempre se preocupa com o bem-estar da pessoa."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,
             temperature=0.7
         )
-        return response['choices'][0]['message']['content'].strip()
+        return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"❌ Erro REAL ao consultar o GPT: {e}")  # <<< Agora vamos ver o erro real no log
+        print(f"❌ Erro REAL ao consultar o GPT: {e}")
         return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde!"
 
 def send_message(to, message):
