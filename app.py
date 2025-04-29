@@ -16,7 +16,7 @@ client = openai.OpenAI(api_key=openai_api_key)
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Laura GPT-4-turbo está online! 🚀", 200
+    return "Laura GPT-3.5-turbo está online! 🚀", 200
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
@@ -44,9 +44,9 @@ def webhook():
 def ask_gpt(prompt):
     try:
         response = client.chat.completions.create(
-            model="gpt-4-turbo",
+            model="gpt-3.5-turbo",  # Agora usando gpt-3.5-turbo
             messages=[
-                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, sensível, que sempre se preocupa com o bem-estar da pessoa."},
+                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática, sensível e dedicada, que sempre se preocupa com o bem-estar da pessoa que conversa com ela."},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,
