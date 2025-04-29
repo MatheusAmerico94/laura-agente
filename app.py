@@ -41,9 +41,9 @@ def webhook():
 def ask_gpt(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-4-turbo",  # ✅ Agora usando gpt-4-turbo
+            model="gpt-4-turbo",  # Agora usando GPT-4-turbo
             messages=[
-                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática, educada e muito inteligente! Sempre responde de forma gentil, alegre e com energia positiva."},
+                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática e muito inteligente!"},
                 {"role": "user", "content": prompt}
             ],
             max_tokens=500,
@@ -51,8 +51,8 @@ def ask_gpt(prompt):
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
-        print(f"Erro ao consultar o GPT: {e}")
-        return "Desculpe, estou com dificuldade para pensar agora! 😅 Tente de novo mais tarde!"
+        print(f"❌ Erro REAL ao consultar o GPT: {e}")  # <<< Agora vamos ver o erro real no log
+        return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde!"
 
 def send_message(to, message):
     url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
