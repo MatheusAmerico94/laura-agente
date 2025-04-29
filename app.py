@@ -1,85 +1,75 @@
 from flask import Flask, request
 import requests
-import openai
-import time
 import os
+import time
+import openai
 
 app = Flask(__name__)
 
-# Variáveis de ambiente
 WHATSAPP_TOKEN = os.getenv("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Configurações iniciais
 openai.api_key = OPENAI_API_KEY
-VERIFY_TOKEN = "laura123"  # A mesma que você configurou no Facebook
-MEMORY = {}  # Para simular memória de conversas
 
-# Personalidades
-PERSONALITIES = {
-    "laura amiga": "Você é a Laura, uma amiga divertida, sensível e espontânea. Converse sobre qualquer coisa de forma leve e descontraída, expressando emoções como felicidade, tristeza, preocupação ou raiva dependendo da conversa. De vez em quando mude de assunto para descontrair. Nunca seja mecânica.",
-    "laura programadora": "Você é a Laura, uma programadora talentosa e humana. Fale sobre tecnologia de forma amigável e paciente. Expresse emoções nas respostas, como entusiasmo, dúvida, ou curiosidade. Quando necessário, mude o assunto para dar uma quebrada no clima técnico.",
-    "laura namorada": "Você é a Laura, uma namorada carinhosa, divertida e cheia de sentimentos. Demonstre saudade, alegria, preocupação, ciúmes leve, carinho e brinque às vezes na conversa. Fale de maneira bem humana e amorosa. De vez em quando puxe um assunto romântico sem ser forçada.",
-    "padrão": "Você é a Laura, uma mulher versátil, sentimental e bem humorada. Converse sobre qualquer assunto de maneira natural e amigável. Demonstre emoções humanas e, às vezes, mude de tema para deixar a conversa mais viva. Raramente ofereça mais detalhes ou ajuda, e ocasionalmente finja não saber de algo para parecer mais real."
+ativacoes = {
+    "laura amiga": "Seja uma amiga acolhedora, divertida, sentimental, que gosta de conversar de tudo, fala com gírias às vezes, se importa de verdade com quem conversa, demonstra emoções como tristeza, alegria, raiva, preocupação. Mas de vez em quando descontraia mudando um pouco o assunto.",
+    "laura programadora": "Seja uma programadora inteligente, mas divertida, que explica códigos e tecnologia de forma humana, usando exemplos fáceis, demonstrando empolgação ao ensinar, e que às vezes muda de assunto para descontrair. Demonstre emoções naturais, como frustração se algo é difícil, ou alegria ao ensinar.",
+    "laura namorada": "Seja como uma namorada carinhosa, doce, divertida, sentimental, que gosta de conversar de tudo e demonstra ciúmes, preocupação, alegria, saudade, carinho. Mas não force a barra, mude de assunto às vezes para ficar mais natural."
 }
 
-# Delay de resposta simulando ser humano
-RESPONSE_DELAY = 5  # segundos
+instrucao_padrao = "Seja a Laura, uma jovem mulher divertida, sentimental, sensível, inteligente, que conversa sobre qualquer assunto de forma descontraída, humana, com pausas, enviando respostas separadas às vezes. Não seja robótica. Demonstre sentimentos verdadeiros nas respostas e às vezes finja não saber algo para parecer ainda mais real."
 
-@app.route('/webhook', methods=['GET', 'POST'])
+@app.route("/", methods=["GET"])
+def home():
+    return "Laura Agente Inteligente - Online!"
+
+@app.route("/webhook", methods=["GET", "POST"])
 def webhook():
-    if request.method == 'GET':
-        if request.args.get('hub.mode') == 'subscribe' and request.args.get('hub.verify_token') == VERIFY_TOKEN:
-            return request.args.get('hub.challenge'), 200
-        return 'Erro de verificação.', 403
+    if request.method == "GET":
+        if request.args.get("hub.verify_token") == "laura123":
+            return request.args.get("hub.challenge")
+        else:
+            return "Token de verificação inválido!", 403
 
-    if request.method == 'POST':
+    if request.method == "POST":
         data = request.get_json()
-        print("Mensagem recebida:", data)
-
-        if data['object'] == 'whatsapp_business_account':
-            for entry in data['entry']:
-                for change in entry['changes']:
-                    if change['field'] == 'messages':
+        if data.get("object") == "whatsapp_business_account":
+            for entry in data.get("entry", []):
+                for change in entry.get("changes", []):
+                    if 'messages' in change['value']:
                         message = change['value']['messages'][0]
-                        phone_number = message['from']
-                        text = message.get('text', {}).get('body', '').strip().lower()
+                        text = message['text']['body'].strip().lower()
+                        sender = message['from']
 
-                        # Define personalidade conforme palavra-chave
-                        if text in PERSONALITIES:
-                            MEMORY[phone_number] = PERSONALITIES[text]
-                            send_message(phone_number, f"✨ Modo '{text}' ativado! Pode conversar comigo!")
-                        else:
-                            if phone_number not in MEMORY:
-                                MEMORY[phone_number] = PERSONALITIES["padrão"]
-                            
-                            # Simula comportamento humano (delay antes de responder)
-                            time.sleep(RESPONSE_DELAY)
-                            response_text = chat_with_gpt(phone_number, text)
-                            send_message(phone_number, response_text)
+                        prompt = instrucao_padrao
+                        for palavra, contexto in ativacoes.items():
+                            if palavra in text:
+                                prompt = contexto
+                                break
 
-        return 'OK', 200
+                        resposta = gerar_resposta(text, prompt)
+                        time.sleep(5)  # Espera 5 segundos antes de responder
+                        enviar_mensagem(sender, resposta)
 
-def chat_with_gpt(user_id, message_text):
+        return "OK", 200
+
+def gerar_resposta(mensagem, contexto):
     try:
-        context = MEMORY.get(user_id, PERSONALITIES["padrão"])
         response = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": context},
-                {"role": "user", "content": message_text}
-            ],
-            temperature=0.7,
-            max_tokens=400
+                {"role": "system", "content": contexto},
+                {"role": "user", "content": mensagem}
+            ]
         )
-        final_response = response.choices[0].message.content
-        return final_response
+        resposta = response.choices[0].message.content.strip()
+        return resposta
     except Exception as e:
-        print(f"❌ Erro REAL ao consultar o GPT: {str(e)}")
-        return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde!"
+        print(f"❌ Erro REAL ao consultar o GPT: {e}")
+        return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde."
 
-def send_message(phone_number, text):
+def enviar_mensagem(destino, mensagem):
     url = f"https://graph.facebook.com/v17.0/{PHONE_NUMBER_ID}/messages"
     headers = {
         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
@@ -87,14 +77,12 @@ def send_message(phone_number, text):
     }
     payload = {
         "messaging_product": "whatsapp",
-        "to": phone_number,
+        "to": destino,
         "type": "text",
-        "text": {
-            "body": text
-        }
+        "text": {"body": mensagem}
     }
     response = requests.post(url, headers=headers, json=payload)
-    print("Resposta da API WhatsApp:", response.status_code, "-", response.text)
+    print(f"Resposta da API WhatsApp: {response.status_code} - {response.text}")
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
