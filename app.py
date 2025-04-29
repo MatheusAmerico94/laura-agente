@@ -5,7 +5,7 @@ import openai
 
 app = Flask(__name__)
 
-# Tokens e configurações puxadas das Variáveis de Ambiente
+# Configurações: puxando variáveis de ambiente
 VERIFY_TOKEN = "laura123"
 ACCESS_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
@@ -41,4 +41,36 @@ def webhook():
 def ask_gpt(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Ou "gpt-4" se
+            model="gpt-3.5-turbo",  # Pode mudar para "gpt-4" se quiser depois
+            messages=[
+                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática e muito inteligente!"},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=300,
+            temperature=0.7
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        print(f"Erro ao consultar o GPT: {e}")
+        return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde!"
+
+def send_message(to, message):
+    url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
+    headers = {
+        "Authorization": f"Bearer {ACCESS_TOKEN}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": to,
+        "type": "text",
+        "text": {"body": message}
+    }
+    try:
+        response = requests.post(url, headers=headers, json=payload)
+        print(f"Resposta da API WhatsApp: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"Erro ao enviar mensagem para o WhatsApp: {e}")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
