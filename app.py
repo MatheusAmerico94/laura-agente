@@ -5,8 +5,8 @@ import requests
 app = Flask(__name__)
 
 VERIFY_TOKEN = "laura123"
-ACCESS_TOKEN = os.getenv("WHATSAPP_TOKEN")
-PHONE_NUMBER_ID = os.getenv("PHONE_NUMBER_ID")
+ACCESS_TOKEN = os.environ.get("WHATSAPP_TOKEN")
+PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
 
 @app.route("/", methods=["GET"])
 def home():
@@ -23,8 +23,6 @@ def webhook():
 
     if request.method == "POST":
         data = request.get_json()
-        print("Mensagem recebida:", data)
-
         if data.get("entry"):
             for entry in data["entry"]:
                 for change in entry["changes"]:
@@ -33,10 +31,8 @@ def webhook():
                         for message in value["messages"]:
                             text = message.get("text", {}).get("body", "").lower().strip()
                             from_number = message.get("from")
-
                             if text == "oi":
-                                send_message(from_number, "Oi! 😄 Que bom que você me chamou! Sou a Laura! Como posso te ajudar hoje?")
-
+                                send_message(from_number, "Oi! 😄 Que bom que você me chamou! Eu sou a Laura! Como posso te ajudar hoje?")
         return jsonify({"status": "mensagem recebida"}), 200
 
 def send_message(to, message):
@@ -52,7 +48,7 @@ def send_message(to, message):
         "text": {"body": message}
     }
     response = requests.post(url, headers=headers, json=payload)
-    print(f"Resposta: {response.status_code} - {response.text}")
+    print(f"Resposta da API: {response.status_code} - {response.text}")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
