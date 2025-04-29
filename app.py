@@ -13,7 +13,7 @@ openai.api_key = os.environ.get("OPENAI_API_KEY")
 
 @app.route("/", methods=["GET"])
 def home():
-    return "Laura GPT está online! 🚀", 200
+    return "Laura GPT-4-turbo está online! 🚀", 200
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
@@ -41,18 +41,18 @@ def webhook():
 def ask_gpt(prompt):
     try:
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # Pode mudar para "gpt-4" se quiser depois
+            model="gpt-4-turbo",  # ✅ Agora usando gpt-4-turbo
             messages=[
-                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática e muito inteligente!"},
+                {"role": "system", "content": "Você é a Laura, uma assistente virtual divertida, simpática, educada e muito inteligente! Sempre responde de forma gentil, alegre e com energia positiva."},
                 {"role": "user", "content": prompt}
             ],
-            max_tokens=300,
+            max_tokens=500,
             temperature=0.7
         )
         return response['choices'][0]['message']['content'].strip()
     except Exception as e:
         print(f"Erro ao consultar o GPT: {e}")
-        return "Desculpe, estou meio ocupada agora! 😅 Tente de novo mais tarde!"
+        return "Desculpe, estou com dificuldade para pensar agora! 😅 Tente de novo mais tarde!"
 
 def send_message(to, message):
     url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
