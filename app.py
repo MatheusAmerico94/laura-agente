@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 import os
 import requests
+import openai
 
 app = Flask(__name__)
 
@@ -8,9 +9,12 @@ VERIFY_TOKEN = "laura123"
 ACCESS_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
 
+# Configurar a API Key do OpenAI de forma segura (via variáveis de ambiente)
+openai.api_key = os.environ.get("OPENAI_API_KEY")
+
 @app.route("/", methods=["GET"])
 def home():
-    return "Laura está online!", 200
+    return "Laura GPT está online!", 200
 
 @app.route("/webhook", methods=["GET", "POST"])
 def webhook():
@@ -29,26 +33,10 @@ def webhook():
                     value = change.get("value", {})
                     if "messages" in value:
                         for message in value["messages"]:
-                            text = message.get("text", {}).get("body", "").lower().strip()
+                            text = message.get("text", {}).get("body", "").strip()
                             from_number = message.get("from")
-                            if text == "oi":
-                                send_message(from_number, "Oi! 😄 Que bom que você me chamou! Eu sou a Laura! Como posso te ajudar hoje?")
+                            gpt_response = ask_gpt(text)
+                            send_message(from_number, gpt_response)
         return jsonify({"status": "mensagem recebida"}), 200
 
-def send_message(to, message):
-    url = f"https://graph.facebook.com/v18.0/{PHONE_NUMBER_ID}/messages"
-    headers = {
-        "Authorization": f"Bearer {ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {"body": message}
-    }
-    response = requests.post(url, headers=headers, json=payload)
-    print(f"Resposta da API: {response.status_code} - {response.text}")
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+def
